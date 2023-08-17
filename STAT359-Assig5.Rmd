@@ -1,0 +1,262 @@
+---
+title: "STAT359-Assig5"
+author: "Isabella Pelletier"
+date: "12/1/2020"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1.
+#
+__ Find a model that best describes beef consumption in the United States. Complete a full analysis of the data (initial plots, model selection, residual plots etc). Discuss your results__
+```{r}
+beef = read.table(file="~/Desktop/R/beef.txt", header=TRUE, sep="")
+attach(beef)
+library(knitr)
+kable(beef, caption = 'Beef consumption data', align='c')
+```
+
+* Null Hypothesis: There is no association between Beef Consumption and any of Year, Price, Income, or Pork Consumption.
+
+* Alternative Hypothesis: There is an association with Beef Consumption and at least one of Year, Price, Income, or Pork Consumption.
+
+```{r}
+pairs(beef)
+```
+
+* From the pairs plot we can see that Beef consumption may have a positive relationship with Income as well as a positive relationship with Pork consumption. There also may be a negative relationship between Beef consumption and Price. The relationship between Beef Consumption and Year will have to be looked into further to draw more information.
+
+* We will start with a model including 4 main effects, 6 2-way interactions (Year x Price, Year x Income, Year x Pork, Price x Income, Price x Pork, Income x Pork), 4 3-way interactions (Year x Price x Income, Year x Price x Pork, Price x Income x Pork, Year x Income, Pork), 1 4-way interaction (Year x Price x Income x Pork), and an intercept leading to 16 parameters. This is more than 20/3 parameters so we will have to look out for over-parameterization.
+
+```{r}
+beef.m1=lm(Beef.Consumption~Year*Price*Income*Pork.Consumption)
+summary(beef.m1)
+```
+
+* The initial model has an R-squared = 0.9873 and the 4-way interaction is not significant (p-value = 0.257).
+
+```{r}
+beef.m2 = update(beef.m1,.~.-Year:Price:Income:Pork.Consumption)
+summary(beef.m2)
+```
+
+* Year x Price x Income is the least significant 3-way interaction.
+
+```{r}
+beef.m3 = update(beef.m2,.~.-Year:Price:Income)
+summary(beef.m3)
+```
+
+* Next to be removed is Year x Income x Pork.Consumption.
+
+```{r}
+beef.m4 = update(beef.m3,.~.-Year:Income:Pork.Consumption)
+summary(beef.m4)
+```
+
+* Next to be removed is Price x Income x Pork.Consumption.
+
+```{r}
+beef.m5 = update(beef.m4,.~.-Price:Income:Pork.Consumption)
+summary(beef.m5)
+```
+
+* Next we remove the last 3-way interaction Year x Price x Pork.Consumption.
+
+```{r}
+beef.m6 = update(beef.m5,.~.-Year:Price:Pork.Consumption)
+summary(beef.m6)
+```
+
+* The least significant 2-way interaction is Price x Pork.Consumption so this will be removed first.
+
+```{r}
+beef.m7 = update(beef.m6,.~.-Price:Pork.Consumption)
+summary(beef.m7)
+```
+
+* Next we remove Year x Pork.Consumption.
+
+```{r}
+beef.m8 = update(beef.m7,.~.-Year:Pork.Consumption)
+summary(beef.m8)
+```
+
+* Next we remove Income x Pork.Consumption.
+
+```{r}
+beef.m9 = update(beef.m8,.~.-Income:Pork.Consumption)
+summary(beef.m9)
+```
+
+* Next we remove Price x Income.
+
+```{r}
+beef.m10 = update(beef.m9,.~.-Price:Income)
+summary(beef.m10)
+```
+
+* Next we remove Year x Income.
+
+```{r}
+beef.m11 = update(beef.m10,.~.-Year:Income)
+summary(beef.m11)
+```
+
+* All remaining terms are significant at the 0.05 level. The remaining 6 terms is less than 20/3 so we do not have to worry about over-paramaterization. 
+
+* The initial model had an R-squared value of 0.9873 while the best fit model has an R-squared value of 0.9426 which is still quite acceptable. The p-value of 3.385e-08 allows us to reject the null hypothesis of no interaction.
+
+* Now we examine some model diagnostics. 
+
+```{r}
+par(mfrow=c(1,3))
+plot(beef.m11, which=c(1,2,4))
+```
+
+* The variance of the residuals is quite constant and the distribution of the residuals in the Q-Q plot does not appear to deviate from normality. The slight deviations and variability shown can be explained by the very small sample size of the data. Observations 13 and 20 in Cook's distance look as though they appear influential but they do not appear to be extreme in any of the other plots so we will leave them in.
+
+* In summary, all 4 original factors as well as the 2-way interaction of Year x Price appear to be related to Beef Consumption. 
+
+* Year, Price, and Pork Consumption are negatively related to Beef Consumption, while Income and Year x Price are Positively related to Beef Consumption. 
+
+* Final model:
+Beef Consumption = 3.250e+03 - 1.639e+00xYear - 1.170e+02xPrice + 7.133e-02xIncome - 3.608e-01xPork.Consumption + 5.977e-02xYearxPrice
+
+* This model explains roughly 94% of the variability in Beef Consumption in this data set.
+
+
+# Question 2.
+#
+__ Use multiple regression to test whether serum cholesterol is associated with body mass index when age is included in the model. Consider carefully how both variables should be included, include initial plots, residual plots etc. Discuss your results carefully.__
+```{r}
+chol = read.table(file="~/Desktop/R/chol.txt", header=TRUE, sep="")
+attach(chol)
+```
+
+* Null Hypothesis: There is no association between Cholesterol concentration and BMI when age is included in the model.
+
+* Alternative Hypothesis: There is an association between Cholesterol concentration and BMI when age is included in the model.
+
+* We will first fit a simple linear regression model with just Cholesterol concentration and BMI. 
+
+```{r}
+plot(BMI, CHOL, ylab="Cholesterol Concentration", xlab="Body Mass Index")
+title('BMI and Cholesterol Concentration' )
+model.simple = lm(CHOL~BMI)
+abline(model.simple)
+```
+
+* From the plot of BMI and Cholesterol concentration it appears that there is a positive relationship between the two.
+
+```{r}
+summary(model.simple)
+```
+
+* The model on its own does not appear to be a good fit with only 28.65% of the variability in Cholesterol concentration explained by BMI. 
+
+* For testing the relationship between Cholesterol concentration and BMI we obtain a p-value = 0.002303 so we reject the null hypothesis that they are not related.
+
+```{r}
+2*(1-pt(3.353,length(BMI)-2))
+```
+```{r}
+coef(model.simple)[2]
+```
+```{r}
+confint(model.simple)
+```
+
+* A unit increase in BMI will increase Cholesterol concentration by 0.0023 with 95% confidence interval (0.120,0.498).
+
+* This analysis concludes that there is a positive association between Cholesterol concentration and BMI.
+
+* Now we will add the age variable into the equation. 
+
+```{r}
+chol.data = data.frame(CHOL=CHOL,BMI=BMI,Age=Age)
+pairs(chol.data)
+```
+
+* From the pairs plot we can see that Cholesterol concentration is also positively associated with age as we knew. It also appears that BMI and Age are positively correlated. There looks to be a slight curvature in the graph of CHOl and BMI so we will attempt to fix this with a quadratic model. 
+
+```{r}
+chol.multiple = lm(CHOL~BMI*Age+I(BMI^2))
+summary(chol.multiple)
+```
+
+* In the multiple regression model including age we have increased the R-squared value with R-squared = 0.5062
+
+* The 2-way interaction of BMI x Age is not significant so we will remove it
+
+```{r}
+chol.multiple2 = update(chol.multiple,.~.-BMI:Age)
+summary(chol.multiple2)
+```
+
+* Remove the quadratic term for BMI.
+
+```{r}
+chol.multiple3 = update(chol.multiple2,.~.-I(BMI^2))
+summary(chol.multiple3)
+```
+
+* All remaining terms are significant 
+
+```{r}
+par(mfrow=c(1,3))
+plot(chol.multiple3, which=c(1,2,4))
+```
+
+* It appears as though the variance of the residuals is not constant and increases with fitted values. The distribution of the residuals may be right skewed as well as potentially a bit left skewed.
+
+* We will apply a log transformation to the response.
+
+```{r}
+chol.multiple4 = update(chol.multiple3,log(.)~.)
+summary(chol.multiple4)
+```
+
+* Remaining terms are still significant with the p-value for BMI being 0.0148 and the p-value for Age being 0.0086. The P-value of 0.0001516 tells us that we can reject the null hypothesis and there is an interaction between BMI, Age and Cholesterol concentration.
+
+```{r}
+par(mfrow=c(1,3))
+plot(chol.multiple4,which=c(1,2,4))
+```
+
+*The variance of the residuals appears constant and the distribution is much better. The slight deviations can probably be explained by the small sample size. Observation 24 looks as though it may be potentially influential. This observation appears extreme in all of the diagnostic plots.
+
+```{r}
+chol.multiple5 = update(chol.multiple4,.~.,subset=(1:length(CHOL)!=17))
+summary(chol.multiple5)
+```
+
+* The coefficient estimates appear stable and the R-squared is also stable to remove observation 24.
+
+```{r}
+confint(chol.multiple4)
+```
+
+* The 95% confidence interval for the coefficient of cholesterol includes 0
+
+
+* In summary Cholesterol concentration is associated with BMI when Age is included in the model. The effects are additive and these factors do not appear to interact in their relationship with cholesterol concentration.
+
+* On the log-scale, BMI and Age are positively related to cholesterol concentration.
+
+* Final model:
+CHOL = exp{0.548262 + 0.038581xBMI + 0.006449xAge
+
+* This model explains roughly 48% of the variability of Cholesterol concentration in the data set.
+
+
+
+
+
+
+
